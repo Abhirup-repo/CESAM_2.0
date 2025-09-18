@@ -1,0 +1,169 @@
+#!/bin/tcsh
+limit stacksize unlimited
+#set verbose
+module load cdo
+
+set progdir=`pwd`
+set datadir='/scratch/ifmrs/u24331/MyStudy/CDA_2.0/PlaSim_LR/run'
+set wrksubdir='Zatm'
+#set wrkdir=$datadir'/'$wrksubdir
+set wrkdir=$progdir'/'$wrksubdir
+
+if(! -e ${wrksubdir}) mkdir $wrksubdir
+
+echo "The list of files in Zatm directory"
+ls $wrkdir
+echo "Do you want to clean the Zatm? Press 1 to clean the Zatm, else enter"
+
+set cleanzatm=$< 
+
+echo $cleanzatm
+
+if ($cleanzatm == 1) then
+	rm $wrkdir/*
+	echo "The list of items in wrkdir" ls $wrkdir
+endif
+
+
+
+echo $progdir
+echo $datadir
+
+cd $progdir
+#if(! -e ${wrksubdir}) mkdir $wrksubdir 
+cd $wrkdir
+echo "The program directory is:" $progdir
+
+
+
+set exp1='plasim_output'
+#set exp1=$1
+
+if (-e pburn_input) \rm pburn_input
+
+cat > pburn_input<< EOB
+VTYPE=P,
+HTYPE=G,
+hPa=850,500,200
+CODE=130,131,132,156,139,167,151
+#CODE=131
+MEAN=1,
+NETCDF=1,
+EOB
+#
+#
+set outfile=$exp1'.nc'
+#
+echo "burning process started"
+echo "========================="
+$progdir/burn8_lev $datadir/$exp1 $outfile   < pburn_input > pb_infoall
+echo "burning completed"
+echo "========================="
+echo "List of files after burn"
+echo "-------------------------"
+ls $wrkdir
+cd $wrkdir
+#set daymean="plasim_daymean.nc"
+#cdo daymean $outfile $daymean
+cdo sinfov $outfile
+
+
+#mv $wrkdir/pb_infoall ..
+#echo "Moving all the outputs to the output folder" 
+#echo "++++++++++++++++++++++++++"
+#mv $wrkdir/* '/scratch/ifmrs/u24331/plasim_local/myPlasim/output/'
+#rm -rf $wrkdir
+
+
+
+
+
+
+# set yr1run_first='001'      # chosen first year
+# set yr1run_last='050'  
+
+# if (-e pburn_input) \rm pburn_input
+
+#cat > pburn_input << EOB
+#VTYPE=P,
+#HTYPE=G,
+#hPa=200,500,700,850,1000
+#hPa=1000
+
+#CODE=131,132,135,156
+#MEAN=1,
+#NETCDF=1,
+#EOB
+
+#-------------------------------------
+# cat > pburn_input_single << EOB
+# VTYPE=P,
+# HTYPE=G,
+# #hPa=1000
+# CODE=167,
+# MEAN=0,
+# NETCDF=1,
+# EOB
+
+
+
+# foreach yr1run (`seq $yr1run_first 1 $yr1run_last`)
+
+#   if($yr1run < 100) set yr1run=0$yr1run
+#   if($yr1run < 10)  set yr1run=0$yr1run
+
+#   set outname=$exp1.$yr1run
+
+#   echo '------------------'
+#   echo 'year=               ' $yr1run
+#   echo 'plasim output file: ' $outname
+#   echo '------------------'
+
+#   set outname=$exp1.$yr1run
+
+#   
+#   #set outfile='prclt_top_mm_'$yr1run'.nc'
+  
+#   #set outfilezg='zg500_mm_'$yr1run'.nc'
+
+#   #$progdir/burn8_lev $datadir/$outname $outfile   < pburn_input       > pb_infoall.$yr1run
+#   $progdir/burn8_lev $datadir/$outname $outfile < pburn_input_single > pb_infoall_prclt.$yr1run
+
+# #-------------------------------------
+
+# end
+
+# exit
+
+###################################################
+# 
+# surface/top:
+# 
+# 146 hfss     surface_sensible_heat_flux       W m-2 
+# 147 hfls     surface_latent_heat_flux         W m-2    
+# 151 psl      air_pressure_at_sea_level        hPa   
+# 160 sr       Surface Runoff                   m/s
+# 167 tas      air_temperature_2m               K    
+# 169 tsa      Surface Temperature Accumulated  K 
+# 176 rss      surface_net_shortwave_flux       W m-2  
+# 177 rls      surface_net_longwave_flux        W m-2   
+# 178 tsr      Top Solar Radiation              W/m2
+# 179 ttr      Top Thermal Radiation            W/m2
+# 180 ustr     U-Stress                         Pa 
+# 181 vstr     V-Stress                         Pa
+# 182 evap     lwe_of_water_evaporation         m s-1   
+# 211 sit      Sea Ice Thickness                m
+# 218 snme     Snow Melt                        m/s
+# 221 sndc     Snow Depth Change                m/s
+# 260 prt      total_precipitation              m s-1 
+# 263 nhf      Net Heat Flux                    W/m2
+# 264 nwf      Net Water Flux                   m/s
+# 
+# 500 hPa:
+# 
+# 156 z        Geopotential Height              gpm 
+
+
+
+
+
