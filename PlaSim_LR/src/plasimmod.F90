@@ -238,6 +238,20 @@
       real :: pnudg          =  0. ! nudging time scale for surface pressure [days
       integer :: mkobs       =  0 ! Switch to turn on pseudo observation 
       integer :: makenudge   =  0
+      integer :: chyear      =  0   ! to modify the nstep based on the year prescribed by the namelist
+
+!    *************************************************      
+!    *  Variables to deal with the cost/ adjoint
+!    ************************************************* 
+     
+     real :: dvar(NHOR)
+     integer :: step_flag
+!    -------------------------------------------------     
+     integer :: ncost 
+     integer :: costcal       =0 ! 1/0 switch on/off the cost function
+     real   :: gaussw(NLAT)
+     logical :: lunstable
+
 !
 
 
@@ -330,16 +344,6 @@
       real :: dtrace(NLON,NLAT,NLEV,NTRACE) = 1.0 ! Trace array
 
  
-!    *************************************************      
-!    *  Variables to deal with the cost/ adjoint
-!    ************************************************* 
-     
-     real :: dvar(NHOR)
-     integer :: step_flag
-!    -------------------------------------------------     
-     integer :: ncost 
-     real   :: gaussw(NLAT)
-     logical :: lunstable
 
 !     *************
 !     * Radiation *

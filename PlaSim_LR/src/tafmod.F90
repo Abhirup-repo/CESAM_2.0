@@ -26,20 +26,22 @@ subroutine tafini(n,x)
   integer :: ierr
   integer,dimension(8) :: ih
   real :: z_mask4(NLON,NLAT) ! for compilation with -r8
+  if (costcal>0) then
   if (ncost>0) then
     call initobs 
   endif
+  endif
 
-  allocate(z_mask(NLON,NLAT))
-  open(21,file='mask.srv',form='unformatted',status='old',iostat=ierr)
-  if (ierr /= 0) stop 'no inputfile for y_mysk available'
-  read(21,iostat=ierr)ih(:)
-  if (ierr /= 0) stop 'inputfile for mask is empty'
-  write(*,*)'lon,lat=',ih(5),ih(6)
-  if(ih(5)*ih(6) /= NHOR) stop 'y_mask input file has wrong resolution'
-  read(21)z_mask4
-  z_mask = z_mask4
-  close(21)
+  ! allocate(z_mask(NLON,NLAT))
+  ! open(21,file='mask.srv',form='unformatted',status='old',iostat=ierr)
+  ! if (ierr /= 0) stop 'no inputfile for y_mysk available'
+  ! read(21,iostat=ierr)ih(:)
+  ! if (ierr /= 0) stop 'inputfile for mask is empty'
+  ! write(*,*)'lon,lat=',ih(5),ih(6)
+  ! if(ih(5)*ih(6) /= NHOR) stop 'y_mask input file has wrong resolution'
+  ! read(21)z_mask4
+  ! z_mask = z_mask4
+  ! close(21)
 
   x(:)=ysst(:,1)       ! real :: ysst(NHOR,NLEV_OCE) = 0.  ! temperature (K)
   
@@ -82,16 +84,16 @@ subroutine mod2ytaf(fc)
 
   fc=cost
 
-  lmask = z_mask(:,:)>0
-   write(*,*)'subroutine mod2ytaf, inr_mask=',count(lmask) !SiS
+  ! lmask = z_mask(:,:)>0
+  !  write(*,*)'subroutine mod2ytaf, inr_mask=',count(lmask) !SiS
 
-  if (step_flag>=ntspd) then
-    print *, "The cost is computed as the mean of the last day"
-    dvar_mean=(dvar/(ntspd))
-  else 
-    print *, "The cost is computed as the mean of the last time step"
-    dvar_mean=dtsa(:)
-  end if  
+  ! if (step_flag>=ntspd) then
+  !   print *, "The cost is computed as the mean of the last day"
+  !   dvar_mean=(dvar/(ntspd))
+  ! else 
+  !   print *, "The cost is computed as the mean of the last time step"
+  !   dvar_mean=dtsa(:)
+  ! end if  
 
   ! fc=dvar_mean(323)
   !  dvar_mean=(dvar/ntspd)
@@ -117,11 +119,11 @@ subroutine tafstop(n,x)
 !     subroutine to work with tl results
 !     (to be completed after applying taf)
 !
-  open(44,file='xout_dtsa_dt.srv',form='unformatted')
-  write(44) 169,0,-1,0,NLON,NLAT,0,0
-!SiS!      write(44) x_taf(1:NLON*NLAT)
-  write(44) x(1:NLON*NLAT)
-  close(44)
+!   open(44,file='xout_dtsa_dt.srv',form='unformatted')
+!   write(44) 169,0,-1,0,NLON,NLAT,0,0
+! !SiS!      write(44) x_taf(1:NLON*NLAT)
+!   write(44) x(1:NLON*NLAT)
+!   close(44)
 
   return
 end subroutine tafstop

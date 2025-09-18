@@ -109,6 +109,7 @@
       use pumamod
       use observation, only:nudgini
       logical :: lrestart
+      integer :: dummy_nstep
 
 !     ************************************************************
 !     * Initializations that cannot be run on parallel processes *
@@ -343,6 +344,8 @@
       end if
       call legini
 
+      
+
 !!
 !     for taf
 
@@ -354,8 +357,29 @@
          call initfd
       endif
 
-      if (nrestart == 0) nstep = n_start_step ! timestep since 01-01-0001
-      call updatim(nstep)  ! set date & time array ndatim for start step
+      if (chyear ==1) then 
+            print*, 'n_start_year',n_start_year,'n_start_month',n_start_month
+            print*, ''
+            call cal2step(dummy_nstep,ntspd,n_start_year,n_start_month,1,0,0) 
+            print *, " Exisiting nstep is", nstep, "modified", dummy_nstep  
+            nstep=dummy_nstep
+            
+!            call updatim(dummy_nstep)
+      endif
+      call mpbci(nstep)
+      print*, "nstep after the condition", nstep
+      ! call mpbci(nstep)
+      call updatim(nstep)
+
+      if(mypid == NROOT) write(*,' (a,i4.4,"-",i2.2,"-",i2.2," ",i2.2    &
+     &                        ,":",i2.2," UTC")')                       &
+     &                   '  Simulations starting ',ndatim(1),ndatim(2)    &
+     &                   ,ndatim(3),ndatim(4),ndatim(5)
+
+
+
+      ! if (nrestart == 0) nstep = n_start_step ! timestep since 01-01-0001
+      ! call updatim(nstep)  ! set date & time array ndatim for start step
 
 
 ! get end time step, as in subroutine updatim, but with modified ndatim  SiS
@@ -366,8 +390,13 @@ call cal2step(nstepe,ntspd,ndatim(1)+(ndatim(2)+n_run_months)/12,mod(ndatim(2)+n
 
 ! in case that length is given in n_run_steps instead of years, months, days:             SiS
 nstepe = nstepe + n_run_steps 
-write(*,*)'nstepe =',nstepe
-!nstepe = nstepe + n_run_steps + n_spinup ! added, FastOpt  ! n_spinup not yet introduced  SiS
+call updatim(nstepe)
+write(*,*)' nstepe =',nstepe
+
+! if(mypid == NROOT) write(*,' (a,i4.4,"-",i2.2,"-",i2.2," ",i2.2    &
+!      &                        ,":",i2.2," UTC")')                       &
+!      &                   'Simulations stopping ',ndatim(1),ndatim(2)    &
+!      &                   ,ndatim(3),ndatim(4),ndatim(5)
 
       if (mypid == NROOT) then
          if (noutput > 0) call outini    ! Open output file <plasim_output>
@@ -375,7 +404,8 @@ write(*,*)'nstepe =',nstepe
 !
 !*    initialize miscellaneous additional parameterization
 !     which are included in *miscmod*
-!
+
+!      call updatim(nstep)
 
       call miscini
 
@@ -571,8 +601,8 @@ write(*,*)'nstepe =',nstepe
       mocd = n_run_months                     ! month countdown
       nscd = n_run_days * ntspd + n_run_steps ! step countdown
       print *,"============ Step countdown ===========", nscd
-      if (nrestart == 0) nstep = n_start_step ! timestep since 01-01-0001
-      call updatim(nstep)  ! set date & time array ndatim
+!      if (nrestart == 0) nstep = n_start_step ! timestep since 01-01-0001
+!      call updatim(nstep)  ! set date & time array ndatim
 !$TAF STORE ndatim = main
 
       nstep1 = nstep ! Remember start step for timing stats
@@ -584,16 +614,18 @@ write(*,*)'nstepe =',nstepe
 !!!! ============ The main loop is here ========================== 
       
       !allocate (dvar(NHOR,nscd))
+!      print*,"* nstep in master ",nstep
       step_flag=nscd-ntspd
-      print *, "The step flag is", step_flag
+!      print *, "The step flag is", step_flag
       !open (420, file="dependent_variable.srv",form="unformatted")
       dvar(:)=0
       do while (mocd > 0 .or. nscd > 0)  ! main loop
 
 !$TAF store nstep, naccua, naccuo, ndatim,nstep2 = main
         nstep2 = nstep - nstep1 +1   ! current time step, counted from 1. SiS
-        print *, "the value of nstep2", nstep2
-
+      !   print*,"================================="
+      !   print *, "the value of nstep2", nstep2
+      ! print*,"================================="
 !$taf STORE &
 !$taf& dcsoil,dforest,dicec,dnogrow,dql,dqt,dres,drhs,dsnow,dsnowz,dsoilt,dtclim,dtsm,dvlai,dvrhs,dvsoil,  &
 !$taf& dvveg,dvz0,dwatc,dwclim,dwmax,nbiomass,xicec,xiced,ysst,zfw,zveg &
@@ -609,7 +641,7 @@ write(*,*)'nstepe =',nstepe
 !        * calculation of non-linear quantities in grid point space *
 !        ************************************************************
               call cpu_time(zstart)
-         call gridpointa
+              call gridpointa
               call cpu_time(zstop)
               zt_gridpointa=zt_gridpointa + (zstop-zstart)
 !$TAF STORE sqt = main
@@ -619,7 +651,7 @@ write(*,*)'nstepe =',nstepe
 !        ******************************
 
               call cpu_time(zstart)
-         call spectrala
+              call spectrala
               call cpu_time(zstop)
               zt_spectrala=zt_spectrala + (zstop-zstart)
 !$taf store sdp,sqp,stp,szp,naccuo,nstep_ocean,xtfreeze = main
@@ -628,7 +660,7 @@ write(*,*)'nstepe =',nstepe
 !        * diabatic part of timestep *
 !        *****************************
 
-     call cpu_time(zstart)
+              call cpu_time(zstart)
               call gridpointd
               call cpu_time(zstop)
               zt_gridpointd=zt_gridpointd + (zstop-zstart)
@@ -647,21 +679,23 @@ write(*,*)'nstepe =',nstepe
          if (ngui > 0) call guistep_plasim
 !$TAF STORE sdm,spm,spp,spt,sqm,stm,stt,szm = main
               call cpu_time(zstart)
-         call spectrald
+              call spectrald
               call cpu_time(zstop)
               zt_spectrald=zt_spectrald + (zstop-zstart)
 !================= Writing / creating the dummy dependent variable ================
-          !write(420) (dt(:,NLEV)-tgr)    
-          !print *, dt(:,NLEP)
-          if (nstep2>=abs(step_flag)) then
+
+!          if (nstep2>=abs(step_flag)) then
             !print*, "It is computing the cost"
-            dvar=dvar(:)+dtsa(:)
+!            dvar=dvar(:)+dtsa(:)
              !dvar=dvar(:)+dt(:,NLEP)
-          end if  
+!          end if  
+
+      if (costcal .eq. 1) then 
           if (ncost.ne.0) call genav
           if (mod(nstep2,ncost)==0) then
             call addcost((nstep2/ncost))
           endif
+      endif
           call outaccu
          if (mod(nstep,nafter) == 0) then
           if(noutput > 0) then
@@ -1097,7 +1131,7 @@ write(nutc,*)'used time acc [s] in spectrald  : ',zt_spectrala
                    , psurf                                              &
                    , restim  , t0      , tfrc                           &
                    , sigh     , nenergy  , nsponge  , dampsp, ncost     &
-                   ,makenudge, dnudg,  znudg ,  qnudg,  pnudg, tnudg
+                   ,makenudge, dnudg,  znudg ,  qnudg,  pnudg, tnudg, chyear,costcal
 !
 !     preset namelist parameter according to model set up
 !

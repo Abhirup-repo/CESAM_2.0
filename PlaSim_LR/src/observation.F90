@@ -346,19 +346,23 @@
       use pumamod
       implicit none
       !  for data type  
-      integer,parameter :: ioprec=8 ! prcision of data files
+      integer,parameter :: ioprec=4 ! prcision of data files
       integer(kind=4) :: ircw1,ircw2,ircw3,ircw4 ! fortran record control words
       integer(kind=4)   :: ihead(8) ,jhead(8)         ! SERVICE header
       integer :: recl, junit=50
       character(len=50),parameter :: nfile = 'observations_nudg.srv'
       real(kind=ioprec):: fio1(NLON*NLAT), fio2(NLON*NLAT) ! single data field in single precision
          inquire(iolength=recl) ircw1,ihead(:),ircw2,ircw3,fio1(:),ircw4
-         open (junit,file=nfile, FORM='UNFORMATTED',ACCESS='DIRECT',RECL=recl,STATUS='old',action='read',convert='BIG_ENDIAN')
+         ! open (junit,file=nfile, FORM='UNFORMATTED',ACCESS='DIRECT',RECL=recl,STATUS='old',action='read',convert='SMALL_ENDIAN')
+         open (unit=junit, file=nfile, form='UNFORMATTED', access='DIRECT', recl=recl, status='OLD', action='READ', convert='LITTLE_ENDIAN')
+!         read(junit, rec=1) ircw1, ihead, ircw2, ircw3, fio1, ircw4
+!         print *, 'Header values (ihead): ', ihead
+!         print *, 'RECL =', recl
       end subroutine nudgini
 
       subroutine getnudg(kstep,kcode,frd)
          use pumamod
-         use srvio , only : readsrv,code2field
+!         use srvio , only : readsrv,code2field
          implicit none
          integer, intent(in) :: kcode ,kstep !( 138 155 130 133)
          real, dimension(NLON*NLAT,NLEV), intent(out) :: frd
@@ -367,7 +371,7 @@
          integer :: nmin,nhour,nday,nmonth,nyear,kyday,nrec
          integer :: junit=50, klev
       !  for data type  
-         integer,parameter :: ioprec=8 ! prcision of data files
+         integer,parameter :: ioprec=4 ! prcision of data files
          integer(kind=4) :: ircw1,ircw2,ircw3,ircw4 ! fortran record control words
          integer(kind=4)   :: ihead(8) ,jhead(8)         ! SERVICE header
          real(kind=ioprec):: fio1(NLON*NLAT), fio2(NLON*NLAT) ! single data field in single precision
@@ -378,7 +382,7 @@
             print*,'getnudg can only be in ROOT process!'
             stop
          endif
-
+!         print*, "KSTEP in getnudge", kstep
          call ntomin(kstep+1,nmin,nhour,nday,nmonth,nyear)  
          call mmdd2yday(kyday,nyear,nmonth,nday)
          
@@ -392,8 +396,11 @@
          itr2=(mod(real(nhour),1.)+real(nmin)/60.)/1.
          itr1=1-itr2  ! for nrec record
 
-      !   print*,'simulating time: ', nday,nhour,nmin,nrec, itr1,itr2
-      !    print*,'data is in: ',nrec
+
+!         print*, "NRECORD",nrec
+
+         ! print*,'simulating time: ', nday,nhour,nmin,nrec, itr1,itr2
+         !  print*,'data is in: ',nrec
          
             jhead(1) = kcode     
             jhead(3) = nday + 100 * nmonth + 10000 * nyear
@@ -479,7 +486,7 @@
       
       subroutine getnudg2d(kstep,kcode,frd)
          use pumamod
-         use srvio , only : readsrv,code2field
+!         use srvio , only : readsrv,code2field
 
          implicit none
          integer, intent(in) :: kcode ,kstep !( 134 )
@@ -489,7 +496,7 @@
          integer :: nmin,nhour,nday,nmonth,nyear,kyday,nrec
          integer ::  klev
       !  for data type  
-         integer,parameter :: ioprec=8 ! prcision of data files
+         integer,parameter :: ioprec=4 ! prcision of data files
          integer(kind=4) :: ircw1,ircw2,ircw3,ircw4 ! fortran record control words
          integer(kind=4)   :: ihead(8) ,jhead(8)         ! SERVICE header
          real(kind=ioprec):: fio1(NLON*NLAT), fio2(NLON*NLAT) ! single data field in single precision
@@ -529,7 +536,7 @@
             jhead(8) = n_days_per_year
 
 
-         if(kcode==134)then   ! vorticity
+         if(kcode==134)then   ! surface pressure 
             read (junit,rec=(nrec-1)*41+41) ircw1,ihead(:),ircw2,ircw3,fio1(:),ircw4
             if ( any(ihead((/1/)).ne. jhead((/1/))).or.( (ihead(4).gt.jhead(4)).and.(ihead(3).gt.jhead(3)))) then
             
