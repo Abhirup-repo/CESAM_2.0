@@ -601,8 +601,8 @@ write(*,*)' nstepe =',nstepe
       mocd = n_run_months                     ! month countdown
       nscd = n_run_days * ntspd + n_run_steps ! step countdown
       print *,"============ Step countdown ===========", nscd
-!      if (nrestart == 0) nstep = n_start_step ! timestep since 01-01-0001
-!      call updatim(nstep)  ! set date & time array ndatim
+      if (nrestart == 0) nstep = n_start_step ! timestep since 01-01-0001
+      call updatim(nstep)  ! set date & time array ndatim
 !$TAF STORE ndatim = main
 
       nstep1 = nstep ! Remember start step for timing stats
