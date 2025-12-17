@@ -3746,7 +3746,7 @@
 !#===========================================================
 !           Nudding 
 ! ----------------------------------------------------------
-!if (makenudge==1) then 
+if (makenudge==1) then 
 !if (nstep>nstep0) then
    !print*, "calling nudging"
 ! nudging on divergence
@@ -3862,7 +3862,7 @@ call getnudg(nstep,138,frd) ! nudging for former step:vorticity
          spp(1) = 0.0
          spp(2) = 0.0
       endif
-!endif
+endif
 
 
 !+++++++++++++++++++ Nuddging ends -------------------------
