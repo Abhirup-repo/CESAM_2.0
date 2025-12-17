@@ -1,0 +1,12 @@
+# To run the model from scratch 
+
+source load_modules.sh 
+make scratch 
+make genmake 
+make function 
+
+To get the output from mnc_*, we need to load 
+module load miniforge3/24.7.1 
+
+and then run ncglob.sh 
+but unload it after
