@@ -1,8 +1,10 @@
-C $Header: /u/gcmpack/MITgcm/pkg/exf/exf_mapfields.F,v 1.23 2009/04/28 18:15:33 jmc Exp $
+C $Header: /u/gcmpack/MITgcm/pkg/exf/exf_mapfields.F,v -1.23 2009/04/28 18:15:33 jmc Exp $
 C $Name: checkpoint62y $
 
 #include "CPP_OPTIONS.h"
 #include "CPP_EEOPTIONS.h"
+c#include "ECCO_CPPOPTIONS.h"
+
 c$taf SUBROUTINE MPI_CART_COORDS   INPUT = 1,2,3
 c$taf SUBROUTINE MPI_CART_COORDS  OUTPUT = 4
 c$taf SUBROUTINE MPI_CART_COORDS  ACTIVE = 
@@ -22,7 +24,8 @@ c
 c     ==================================================================
 c     SUBROUTINE plasim_get_atmdat
 c     ==================================================================
-c
+c     
+
       use cplmod
       use cplmod, only : ndatim_cpl=>ndatim
       use pumamod, only: acc,aevap,alhfl,
@@ -57,6 +60,8 @@ c
      &     ndatim_ocean=>ndatim
       use observation, only : genav,addcost,writeobs,countav,nobs,cost,
      &     fobsav,nobsav
+      use mo_mapping, only : ix
+      use mo_mapping_plethora, only : cont2mod_oce_xy
       implicit none
 
 c     == global variables ==
@@ -68,6 +73,11 @@ c     == global variables ==
 #include "FFIELDS.h"
 #include "GRID.h"
 c
+#ifdef ALLOW_AUTODIFF
+# include "ctrl.h"
+# include "ctrl_dummy.h"
+# include "ecco_cost.h"        
+#endif
 
 #ifdef ALLOW_AUTODIFF_TAMC
 # include "tamc.h"
@@ -108,7 +118,10 @@ c
       real(kind=8) cswr(1:Nx,1:Ny)
       real(kind=8) cps(1:Nx,1:Ny)
       real(kind=8) cil(1:Nx,1:Ny)
-
+      real(kind=8) xxFld2d(1-olx:snx+olx,1-oly:sny+oly,nsx,nsy)
+      INTEGER nflxdim
+      PARAMETER (nflxdim=Nx*Ny*360*39)
+      integer ix_atm
 
 c     == end of interface ==
 c--   Initialise local variables.
@@ -211,10 +224,86 @@ c$TAF loop = parallel
       ENDDO
 
 
-
-
-
-
+#ifdef ALLOW_HFLUX_CONTROL
+C     print*,'in plasim_get_atmdat check-point 1'
+C only root cpu share the data with the other cpu.
+C     if (myProcId==nroot) then
+          ix_atm=28672+237600           ! Offset from the  32*64*14 atmos + 44*90*15*4 ocean
+c         ix_atm=28672+118800
+          ix=ix_atm+floor(real(kstepo-3)/3.)*Nx*Ny
+          call cont2mod_oce_xy(xxFld2d,myThid) ! FastOpt          
+C        print*,'in plasim_get_atmdat check-point 2'
+C	 endif
+C         print*,'in plasim_get_atmdat check-point 3'
+      do bj = jtlo,jthi
+        do bi = itlo,ithi
+          do j = 1,sny
+             do i = 1,snx
+                if (whflux(i,j,bi,bj) .ne. 0.) then
+                   Qnet(i,j,bi,bj) = Qnet(i,j,bi,bj)
+     &              +xxFld2d(i,j,bi,bj)
+     &                  /sqrt(whflux(i,j,bi,bj))
+                endif
+            enddo
+          enddo
+        enddo
+      enddo
+C      print*,'in plasim_get_atmdat check-point 4'
+#endif
+#ifdef ALLOW_SFLUX_CONTROL
+         ix_atm=28672+237600+nflxdim         ! Offset from the  32*64*14 atmos ctrl vector
+         ix=ix_atm+floor(real(kstepo-3)/3.)*Nx*Ny
+         call cont2mod_oce_xy(xxFld2d,myThid) ! FastOpt          
+      do bj = jtlo,jthi
+        do bi = itlo,ithi
+          do j = 1,sny
+             do i = 1,snx
+                if (wsflux(i,j,bi,bj) .ne. 0.) then
+                   EmPmR(i,j,bi,bj) = EmPmR(i,j,bi,bj)
+     &              +xxFld2d(i,j,bi,bj)
+     &                  /sqrt(wsflux(i,j,bi,bj))
+               endif
+            enddo
+          enddo
+        enddo
+      enddo
+#endif
+#ifdef ALLOW_USTRESS_CONTROL
+         ix_atm=28672+237600+nflxdim*2         ! Offset from the  32*64*14 atmos ctrl vector
+         ix=ix_atm+floor(real(kstepo-3)/3.)*Nx*Ny
+         call cont2mod_oce_xy(xxFld2d,myThid) ! FastOpt          
+      do bj = jtlo,jthi
+        do bi = itlo,ithi
+          do j = 1,sny
+             do i = 1,snx
+                if (wtauu(i,j,bi,bj) .ne. 0.) then
+                    fu(i,j,bi,bj) = fu(i,j,bi,bj)
+     &              +xxFld2d(i,j,bi,bj)
+     &                  /sqrt(wtauu(i,j,bi,bj))
+                endif
+           enddo
+          enddo
+        enddo
+      enddo
+#endif
+#ifdef ALLOW_VSTRESS_CONTROL
+         ix_atm=28672+237600+nflxdim*3         ! Offset from the  32*64*14 atmos ctrl vector
+         ix=ix_atm+floor(real(kstepo-3)/3.)*Nx*Ny
+         call cont2mod_oce_xy(xxFld2d,myThid) ! FastOpt          
+      do bj = jtlo,jthi
+        do bi = itlo,ithi
+          do j = 1,sny
+             do i = 1,snx
+                if (wtauv(i,j,bi,bj) .ne. 0.) then
+                    fv(i,j,bi,bj) = fv(i,j,bi,bj)
+     &              +xxFld2d(i,j,bi,bj)
+     &                  /sqrt(wtauv(i,j,bi,bj))
+               endif
+            enddo
+          enddo
+        enddo
+      enddo
+#endif
 
 c     Update the tile edges.
 
